@@ -1,0 +1,22 @@
+{
+  "include": [
+    "backend"
+  ],
+  "exclude": [
+    "backend/.venv",
+    "backend/__pycache__",
+    "backend/alembic/versions",
+    "frontend"
+  ],
+  "executionEnvironments": [
+    {
+      "root": "backend",
+      "venvPath": "backend",
+      "venv": ".venv",
+      "extraPaths": [
+        "backend"
+      ],
+      "pythonVersion": "3.10"
+    }
+  ]
+}

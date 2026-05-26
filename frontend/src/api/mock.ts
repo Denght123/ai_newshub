@@ -1,0 +1,328 @@
+import type { LoginPayload, LoginResult, RegisterPayload, UserInfo } from '@/types/auth'
+import type { DashboardOverview } from '@/types/dashboard'
+import type { NewsItem, NewsPayload } from '@/types/news'
+import type { TopicItem, TopicPayload, TopicStatus } from '@/types/topic'
+import type { CategoryItem, TagItem } from '@/types/taxonomy'
+import type { PageResult } from '@/types/common'
+
+const mockUser: UserInfo = {
+  id: 1,
+  username: 'demo',
+  email: 'demo@ai-newshub.local',
+  nickname: '演示用户',
+  role: 'admin',
+  is_active: true,
+  created_at: '2026-04-28T10:00:00',
+}
+
+const categories: CategoryItem[] = [
+  { id: 1, name: '大模型', description: '模型发布、能力更新和评测', sort_order: 1, is_active: true },
+  { id: 2, name: 'AI 绘画', description: '图像、视频和设计工具', sort_order: 2, is_active: true },
+  { id: 3, name: 'Agent', description: '智能体、自动化和编程助手', sort_order: 3, is_active: true },
+  { id: 4, name: '开源项目', description: 'GitHub 与社区项目动态', sort_order: 4, is_active: true },
+]
+
+const tags: TagItem[] = [
+  { id: 1, name: 'OpenAI' },
+  { id: 2, name: 'DeepSeek' },
+  { id: 3, name: '多模态' },
+  { id: 4, name: '开源' },
+  { id: 5, name: 'API 降价' },
+]
+
+let newsList: NewsItem[] = [
+  {
+    id: 1,
+    title: 'DeepSeek 发布新一代推理模型，成本与性能再次成为焦点',
+    source_name: 'DeepSeek 官方',
+    source_url: 'https://example.com/deepseek',
+    summary: '新模型在推理能力、接口价格和中文场景表现上都有明显提升，适合持续跟进。',
+    content: '{\n  "note": "可以从国产 AI、成本下降、开发者生态三个角度分析",\n  "risk": "注意核对官方 benchmark"\n}',
+    category: { id: 1, name: '大模型' },
+    tags: [tags[1], tags[2], tags[4]],
+    status: 'unread',
+    importance_score: 5,
+    heat_score: 5,
+    is_favorite: true,
+    publish_time: '2026-04-28T09:30:00',
+    created_at: '2026-04-28T12:00:00',
+  },
+  {
+    id: 2,
+    title: '某开源 Agent 框架新增浏览器自动化能力',
+    source_name: 'GitHub Trending',
+    source_url: 'https://example.com/agent',
+    summary: '项目新增网页操作、任务规划和工具调用示例，适合做开发者向选题。',
+    content: '这类内容可以整理成“如何判断一个 Agent 框架是否值得使用”的实用文章。',
+    category: { id: 3, name: 'Agent' },
+    tags: [tags[3]],
+    status: 'read',
+    importance_score: 4,
+    heat_score: 4,
+    is_favorite: false,
+    publish_time: '2026-04-27T18:20:00',
+    created_at: '2026-04-28T11:00:00',
+  },
+  {
+    id: 3,
+    title: 'AI 视频工具更新角色一致性功能',
+    source_name: 'Product Blog',
+    summary: '角色一致性、镜头控制和批量生成能力增强，面向内容创作者很有传播潜力。',
+    content: '可以对比传统剪辑流程，突出创作者工作流变化。',
+    category: { id: 2, name: 'AI 绘画' },
+    tags: [tags[2]],
+    status: 'added_to_topic',
+    importance_score: 3,
+    heat_score: 5,
+    is_favorite: false,
+    publish_time: '2026-04-26T15:00:00',
+    created_at: '2026-04-27T10:30:00',
+  },
+]
+
+let topicList: TopicItem[] = [
+  {
+    id: 1,
+    news: { id: 1, title: newsList[0].title },
+    title: 'DeepSeek 新模型为什么值得普通人关注？',
+    recommended_title: 'DeepSeek 这次，把 AI 使用成本又往下压了一截',
+    angle: '从成本下降、国产 AI 生态和普通用户可感知变化三个角度写。',
+    reason: '既有技术热度，也能落到普通用户和内容创作者的使用场景。',
+    target_reader: 'AI 工具用户、大学生、科技公众号读者',
+    category: { id: 1, name: '大模型' },
+    status: 'pending',
+    value_score: 5,
+    difficulty_score: 3,
+    traffic_score: 5,
+    deadline: '2026-05-01T20:00:00',
+    created_at: '2026-04-28T12:30:00',
+  },
+  {
+    id: 2,
+    title: 'Agent 框架进入浏览器：自动化真的更近了吗？',
+    recommended_title: '让 AI 自己点网页，离普通人还有多远？',
+    angle: '解释浏览器自动化能做什么、不能做什么，以及真实落地阻碍。',
+    reason: '适合做一篇兼具科普和工具判断的方法论文章。',
+    target_reader: '开发者、AI 产品经理、效率工具用户',
+    category: { id: 3, name: 'Agent' },
+    status: 'writing',
+    value_score: 4,
+    difficulty_score: 4,
+    traffic_score: 4,
+    deadline: '2026-05-03T20:00:00',
+    created_at: '2026-04-28T13:20:00',
+  },
+]
+
+export function isMockMode() {
+  return localStorage.getItem('ai_newshub_mock') === '1'
+}
+
+export async function mockRequest<T>(method: string, url: string, data?: unknown, params?: Record<string, unknown>): Promise<T> {
+  await new Promise((resolve) => window.setTimeout(resolve, 180))
+
+  if (url === '/auth/login' && method === 'POST') return mockLogin(data as LoginPayload) as T
+  if (url === '/auth/register' && method === 'POST') return mockRegister(data as RegisterPayload) as T
+  if (url === '/auth/me' && method === 'GET') return mockUser as T
+  if (url === '/categories' && method === 'GET') return categories as T
+  if (url === '/tags' && method === 'GET') return tags as T
+  if (url === '/dashboard/overview' && method === 'GET') return mockDashboard() as T
+  if (url === '/news' && method === 'GET') return pageResult(filterNews(params), params) as T
+  if (url === '/news' && method === 'POST') return addNews(data as NewsPayload) as T
+  if (url === '/topics' && method === 'GET') return pageResult(filterTopics(params), params) as T
+  if (url === '/topics' && method === 'POST') return addTopic(data as TopicPayload) as T
+
+  const newsDetailMatch = url.match(/^\/news\/(\d+)$/)
+  if (newsDetailMatch && method === 'GET') return findNews(Number(newsDetailMatch[1])) as T
+  if (newsDetailMatch && method === 'PUT') return updateMockNews(Number(newsDetailMatch[1]), data as NewsPayload) as T
+  if (newsDetailMatch && method === 'DELETE') {
+    newsList = newsList.filter((item) => item.id !== Number(newsDetailMatch[1]))
+    return null as T
+  }
+
+  const favoriteMatch = url.match(/^\/news\/(\d+)\/favorite$/)
+  if (favoriteMatch && method === 'PATCH') return updateFavorite(Number(favoriteMatch[1]), data as { is_favorite: boolean }) as T
+
+  const toTopicMatch = url.match(/^\/news\/(\d+)\/to-topic$/)
+  if (toTopicMatch && method === 'POST') return addTopic({ ...(data as TopicPayload), news_id: Number(toTopicMatch[1]) }) as T
+
+  const topicDetailMatch = url.match(/^\/topics\/(\d+)$/)
+  if (topicDetailMatch && method === 'GET') return findTopic(Number(topicDetailMatch[1])) as T
+  if (topicDetailMatch && method === 'PUT') return updateMockTopic(Number(topicDetailMatch[1]), data as TopicPayload) as T
+  if (topicDetailMatch && method === 'DELETE') {
+    topicList = topicList.filter((item) => item.id !== Number(topicDetailMatch[1]))
+    return null as T
+  }
+
+  const topicStatusMatch = url.match(/^\/topics\/(\d+)\/status$/)
+  if (topicStatusMatch && method === 'PATCH') return updateMockTopicStatus(Number(topicStatusMatch[1]), data as { status: TopicStatus }) as T
+
+  throw new Error(`演示模式暂未覆盖接口：${method} ${url}`)
+}
+
+function mockLogin(_payload: LoginPayload): LoginResult {
+  return {
+    access_token: 'demo-token',
+    token_type: 'bearer',
+    user: mockUser,
+  }
+}
+
+function mockRegister(payload: RegisterPayload): UserInfo {
+  return {
+    ...mockUser,
+    username: payload.username,
+    email: payload.email,
+  }
+}
+
+function mockDashboard(): DashboardOverview {
+  return {
+    news_total: newsList.length,
+    unread_news_total: newsList.filter((item) => item.status === 'unread').length,
+    favorite_news_total: newsList.filter((item) => item.is_favorite).length,
+    topic_total: topicList.length,
+    pending_topic_total: topicList.filter((item) => item.status === 'pending').length,
+    writing_topic_total: topicList.filter((item) => item.status === 'writing').length,
+    published_topic_total: topicList.filter((item) => item.status === 'published').length,
+    recent_news: newsList.slice(0, 5).map((item) => ({
+      id: item.id,
+      title: item.title,
+      status: item.status,
+      created_at: item.created_at || '',
+    })),
+    recent_topics: topicList.slice(0, 5).map((item) => ({
+      id: item.id,
+      title: item.title,
+      status: item.status,
+      created_at: item.created_at || '',
+    })),
+  }
+}
+
+function pageResult<T>(items: T[], params?: Record<string, unknown>): PageResult<T> {
+  const page = Number(params?.page || 1)
+  const pageSize = Number(params?.page_size || 10)
+  const start = (page - 1) * pageSize
+  return {
+    items: items.slice(start, start + pageSize),
+    total: items.length,
+    page,
+    page_size: pageSize,
+    pages: Math.max(1, Math.ceil(items.length / pageSize)),
+  }
+}
+
+function filterNews(params?: Record<string, unknown>) {
+  const keyword = String(params?.keyword || '').toLowerCase()
+  return newsList.filter((item) => {
+    const matchKeyword = !keyword || [item.title, item.summary, item.source_name].some((value) => value?.toLowerCase().includes(keyword))
+    const matchCategory = !params?.category_id || item.category?.id === Number(params.category_id)
+    const matchStatus = !params?.status || item.status === params.status
+    const matchFavorite = params?.is_favorite === undefined || item.is_favorite === params.is_favorite
+    return matchKeyword && matchCategory && matchStatus && matchFavorite
+  })
+}
+
+function filterTopics(params?: Record<string, unknown>) {
+  const keyword = String(params?.keyword || '').toLowerCase()
+  return topicList.filter((item) => {
+    const matchKeyword = !keyword || [item.title, item.angle, item.recommended_title].some((value) => value?.toLowerCase().includes(keyword))
+    const matchCategory = !params?.category_id || item.category?.id === Number(params.category_id)
+    const matchStatus = !params?.status || item.status === params.status
+    return matchKeyword && matchCategory && matchStatus
+  })
+}
+
+function findNews(id: number) {
+  const item = newsList.find((news) => news.id === id)
+  if (!item) throw new Error('演示资讯不存在')
+  return item
+}
+
+function findTopic(id: number) {
+  const item = topicList.find((topic) => topic.id === id)
+  if (!item) throw new Error('演示选题不存在')
+  return item
+}
+
+function addNews(payload: NewsPayload) {
+  const category = categories.find((item) => item.id === payload.category_id)
+  const item: NewsItem = {
+    id: Date.now(),
+    title: payload.title,
+    source_name: payload.source_name,
+    source_url: payload.source_url,
+    summary: payload.summary,
+    content: payload.content,
+    category: category ? { id: category.id, name: category.name } : null,
+    tags: tags.filter((tag) => payload.tag_ids?.includes(tag.id)),
+    status: payload.status || 'unread',
+    importance_score: payload.importance_score || 3,
+    heat_score: payload.heat_score || 3,
+    is_favorite: false,
+    publish_time: payload.publish_time,
+    created_at: new Date().toISOString(),
+  }
+  newsList.unshift(item)
+  return item
+}
+
+function updateMockNews(id: number, payload: NewsPayload) {
+  const oldItem = findNews(id)
+  const category = categories.find((item) => item.id === payload.category_id)
+  Object.assign(oldItem, {
+    ...payload,
+    category: category ? { id: category.id, name: category.name } : null,
+    tags: tags.filter((tag) => payload.tag_ids?.includes(tag.id)),
+    updated_at: new Date().toISOString(),
+  })
+  return oldItem
+}
+
+function updateFavorite(id: number, payload: { is_favorite: boolean }) {
+  const item = findNews(id)
+  item.is_favorite = payload.is_favorite
+  return { id, is_favorite: item.is_favorite }
+}
+
+function addTopic(payload: TopicPayload) {
+  const news = payload.news_id ? findNews(payload.news_id) : undefined
+  const category = categories.find((item) => item.id === payload.category_id)
+  const item: TopicItem = {
+    id: Date.now(),
+    news: news ? { id: news.id, title: news.title } : null,
+    title: payload.title,
+    angle: payload.angle,
+    recommended_title: payload.recommended_title,
+    reason: payload.reason,
+    target_reader: payload.target_reader,
+    category: category ? { id: category.id, name: category.name } : null,
+    status: payload.status || 'pending',
+    value_score: payload.value_score || 3,
+    difficulty_score: payload.difficulty_score || 3,
+    traffic_score: payload.traffic_score || 3,
+    deadline: payload.deadline,
+    created_at: new Date().toISOString(),
+  }
+  topicList.unshift(item)
+  if (news) news.status = 'added_to_topic'
+  return item
+}
+
+function updateMockTopic(id: number, payload: TopicPayload) {
+  const item = findTopic(id)
+  const category = categories.find((categoryItem) => categoryItem.id === payload.category_id)
+  Object.assign(item, {
+    ...payload,
+    category: category ? { id: category.id, name: category.name } : null,
+    updated_at: new Date().toISOString(),
+  })
+  return item
+}
+
+function updateMockTopicStatus(id: number, payload: { status: TopicStatus }) {
+  const item = findTopic(id)
+  item.status = payload.status
+  return { id, status: item.status }
+}

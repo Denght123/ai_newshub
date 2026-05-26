@@ -1,0 +1,7 @@
+{
+  "python.defaultInterpreterPath": "G:\\fastapi_test\\ai_newshub\\backend\\.venv\\Scripts\\python.exe",
+  "python.analysis.extraPaths": [
+    "G:\\fastapi_test\\ai_newshub\\backend"
+  ],
+  "python.analysis.autoSearchPaths": true
+}
