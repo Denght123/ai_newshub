@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from routers.ai_digest import router as ai_digest_router
 from routers.auth import router as auth_router
 from routers.categories import router as categories_router
 from routers.dashboard import router as dashboard_router
@@ -27,6 +28,7 @@ app.include_router(tags_router, prefix=API_PREFIX)
 app.include_router(news_router, prefix=API_PREFIX)
 app.include_router(topics_router, prefix=API_PREFIX)
 app.include_router(dashboard_router, prefix=API_PREFIX)
+app.include_router(ai_digest_router, prefix=API_PREFIX)
 app.include_router(health_router, prefix=API_PREFIX)
 
 register_exception_handlers(app)

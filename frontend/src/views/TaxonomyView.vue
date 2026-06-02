@@ -53,7 +53,7 @@
       </div>
     </section>
 
-    <el-dialog v-model="categoryDialogVisible" :title="editingCategoryId ? '编辑分类' : '新增分类'" width="520px">
+    <el-dialog v-model="categoryDialogVisible" :title="editingCategoryId ? '编辑分类' : '新增分类'" width="520px" append-to-body>
       <el-form ref="categoryFormRef" :model="categoryForm" :rules="categoryRules" label-position="top">
         <el-form-item label="分类名称" prop="name">
           <el-input v-model.trim="categoryForm.name" />
@@ -74,7 +74,7 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="tagDialogVisible" :title="editingTagId ? '编辑标签' : '新增标签'" width="420px">
+    <el-dialog v-model="tagDialogVisible" :title="editingTagId ? '编辑标签' : '新增标签'" width="420px" append-to-body>
       <el-form ref="tagFormRef" :model="tagForm" :rules="tagRules" label-position="top">
         <el-form-item label="标签名称" prop="name">
           <el-input v-model.trim="tagForm.name" />
@@ -245,7 +245,7 @@ onMounted(fetchAll)
 .taxonomy-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.7fr);
-  gap: 18px;
+  gap: 20px;
 }
 
 .toolbar {
@@ -255,7 +255,7 @@ onMounted(fetchAll)
 .tag-board {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 12px;
   padding: 18px;
 }
 
@@ -266,9 +266,33 @@ onMounted(fetchAll)
   gap: 10px;
   min-height: 44px;
   padding: 8px 8px 8px 14px;
-  background: #fbfcfa;
+  background: rgba(249, 251, 254, 0.84);
   border: 1px solid var(--nh-border);
-  border-radius: 8px;
+  border-radius: var(--nh-radius);
+  box-shadow: 0 8px 20px rgba(16, 24, 40, 0.04);
+  transition:
+    border-color var(--nh-transition),
+    box-shadow var(--nh-transition),
+    transform var(--nh-transition);
+}
+
+.tag-card:hover {
+  border-color: var(--nh-border-strong);
+  box-shadow: 0 14px 28px rgba(16, 24, 40, 0.08);
+  transform: translateY(-1px);
+}
+
+.tag-card span {
+  max-width: 180px;
+  overflow: hidden;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:deep(.el-table .el-button.is-text),
+.tag-card :deep(.el-button.is-text) {
+  padding-inline: 7px;
 }
 
 @media (max-width: 980px) {

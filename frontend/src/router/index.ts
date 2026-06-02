@@ -62,6 +62,12 @@ const router = createRouter({
           component: () => import('@/views/TaxonomyView.vue'),
           meta: { title: '分类与标签' },
         },
+        {
+          path: 'ai-digest',
+          name: 'ai-digest',
+          component: () => import('@/views/AIDigestView.vue'),
+          meta: { title: 'AI 自动抓取' },
+        },
       ],
     },
     {

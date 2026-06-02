@@ -1122,9 +1122,207 @@ GET /dashboard/overview
 
 ---
 
-## 9. 健康检查
+## 9. AI 自动抓取模块
 
-## 9.1 服务健康检查
+## 9.1 创建 AI 抓取任务
+
+```http
+POST /ai-digest/runs
+```
+
+是否登录：是  
+权限：管理员或已登录用户，第一版可先只要求登录
+
+接口用途：
+
+前端点击“AI 自动抓取”后，调用该接口创建一次 AI 资讯抓取任务。后端第一版会根据 `ai-news-blogger-digest` 工作流规则抓取资讯、调用 OpenAI-compatible 大模型、匹配现有分类，并按配置决定是否写入 `news`。
+
+第一版建议：
+
+- `dry_run=true` 时只返回预览结果，不写入数据库；
+- `dry_run=false` 时才真正写入资讯表，可选生成选题；
+- API Key 可以临时从请求体传入，也可以后续改为只读取后端 `.env`；
+- 大模型接口必须兼容 OpenAI 风格：`base_url + api_key + model`；
+- 自动分类优先使用当前系统已有分类，避免随意创建大量脏分类。
+
+请求体：
+
+```json
+{
+  "skill_name": "ai-news-blogger-digest",
+  "llm_provider": "openai_compatible",
+  "api_base_url": "https://api.openai.com/v1",
+  "api_key": "sk-xxxxx",
+  "model": "gpt-4.1-mini",
+  "time_window_hours": 24,
+  "max_items": 30,
+  "source_profile": "balanced",
+  "category_strategy": "match_existing",
+  "category_ids": [1, 2, 3],
+  "auto_create_missing_categories": false,
+  "create_topics": true,
+  "dry_run": true,
+  "prompt_note": "更关注国产大模型、开源 Agent、API 降价，不要收录纯融资八卦。"
+}
+```
+
+字段说明：
+
+| 字段 | 类型 | 必填 | 默认值 | 说明 |
+|---|---|---|---|---|
+| skill_name | string | 否 | ai-news-blogger-digest | 要调用或参考的资讯抓取工作流名称 |
+| llm_provider | string | 否 | openai_compatible | 大模型服务商标识，例如 openai、openai_compatible、deepseek_compatible |
+| api_base_url | string | 是 | - | OpenAI-compatible API 基础地址，例如 `https://api.openai.com/v1` |
+| api_key | string | 否 | null | 大模型 API Key。生产环境建议从后端环境变量读取，不建议长期由前端保存 |
+| model | string | 否 | gpt-4.1-mini | 模型名，例如 `gpt-4.1-mini`、`deepseek-chat`、`qwen-plus` |
+| time_window_hours | int | 否 | 24 | 抓取最近多少小时的信息，范围 1-168 |
+| max_items | int | 否 | 30 | 最多保留多少条候选资讯，范围 5-100 |
+| source_profile | string | 否 | balanced | 来源覆盖策略，见下方枚举说明 |
+| category_strategy | string | 否 | match_existing | 分类策略，见下方枚举说明 |
+| category_ids | array[int] | 否 | [] | 可参与匹配或固定写入的现有分类 ID |
+| auto_create_missing_categories | bool | 否 | false | 是否允许后端自动创建缺失分类 |
+| create_topics | bool | 否 | true | 是否根据高价值资讯同步生成选题建议 |
+| dry_run | bool | 否 | true | 是否只预览不入库 |
+| prompt_note | string | 否 | null | 用户给抓取工作流的补充要求 |
+
+`source_profile` 可选值：
+
+| 值 | 说明 |
+|---|---|
+| balanced | 均衡覆盖官方、媒体、社区、论文、开源 |
+| minimal | 最小可用抓取，只覆盖少量核心来源 |
+| official_first | 官方来源优先 |
+| community_hot | 社区热度优先，例如 Hacker News、GitHub Trending |
+
+`category_strategy` 可选值：
+
+| 值 | 说明 |
+|---|---|
+| match_existing | 让大模型根据 `category_ids` 对候选资讯匹配现有分类 |
+| fixed | 所有入库资讯固定写入所选分类，适合只选一个分类时使用 |
+| none | 不设置分类 |
+
+响应：
+
+```json
+{
+  "code": 200,
+  "message": "ai digest run success",
+  "data": {
+    "run_id": "run-a1b2c3d4e5f6",
+    "status": "completed",
+    "message": "AI 抓取整理完成，当前仅返回预览数据",
+    "received_items": 12,
+    "created_news_count": 0,
+    "created_topic_count": 0,
+    "skipped_count": 2,
+    "failed_sources": [],
+    "preview_items": [],
+    "config_summary": {
+      "current_user_id": 1,
+      "skill_name": "ai-news-blogger-digest",
+      "llm_provider": "openai_compatible",
+      "api_base_url": "https://api.openai.com/v1",
+      "model": "gpt-4.1-mini",
+      "time_window_hours": 24,
+      "max_items": 30,
+      "source_profile": "balanced",
+      "category_strategy": "match_existing",
+      "matched_category_count": 3,
+      "auto_create_missing_categories": false,
+      "create_topics": true,
+      "dry_run": true
+    }
+  }
+}
+```
+
+后端真实实现后的响应示例：
+
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "run_id": "run-20260601-001",
+    "status": "completed",
+    "message": "抓取完成，已生成预览结果",
+    "received_items": 18,
+    "created_news_count": 0,
+    "created_topic_count": 0,
+    "skipped_count": 2,
+    "failed_sources": [
+      "Hugging Face Trending timeout"
+    ],
+    "preview_items": [
+      {
+        "title": "DeepSeek API 价格页出现新模型信息",
+        "source_name": "DeepSeek 官方文档",
+        "source_url": "https://api-docs.deepseek.com/quick_start/pricing",
+        "matched_category": {
+          "id": 1,
+          "name": "大模型"
+        },
+        "importance_score": 5,
+        "heat_score": 4,
+        "one_line_summary": "官方价格页出现新模型或价格变化，适合继续核验并写成资讯。"
+      }
+    ]
+  }
+}
+```
+
+响应字段说明：
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| run_id | string | 本次抓取任务 ID |
+| status | string | 任务状态，第一版可返回 completed/failed |
+| message | string | 任务说明 |
+| received_items | int | 抓取和筛选后的候选数量 |
+| created_news_count | int | 实际写入资讯数量，dry_run=true 时应为 0 |
+| created_topic_count | int | 实际生成选题数量，dry_run=true 时应为 0 |
+| skipped_count | int | 去重、低分、来源不可信等原因跳过的数量 |
+| failed_sources | array[string] | 抓取失败的来源说明 |
+| preview_items | array | 预览候选资讯列表 |
+| config_summary | object | 本次任务配置摘要，方便确认前端传参和分类匹配数量 |
+
+可能错误：
+
+| code | HTTP 状态码 | message | 说明 |
+|---|---|---|---|
+| 400 | 400 | invalid ai digest config | 请求参数不合法 |
+| 401 | 401 | token invalid | 未登录或 token 失效 |
+| 422 | 422 | validation error | 字段类型或枚举值错误 |
+| 500 | 500 | ai digest run failed | 抓取或模型调用失败 |
+
+后端实现建议：
+
+```text
+1. 校验请求参数
+2. 读取当前启用分类列表
+3. 根据 skill_name 找到 ai-news-blogger-digest 工作流规则
+4. 抓取官方源、媒体源、社区源、GitHub、arXiv 等来源
+5. 对候选资讯去重、过滤低可信来源
+6. 调用 OpenAI-compatible 大模型生成摘要、评分、分类匹配
+7. dry_run=true：只返回 preview_items
+8. dry_run=false：写入 news 表，必要时写入 topics 表
+9. 返回入库统计、跳过统计和失败来源
+```
+
+安全注意：
+
+- 不要把 `api_key` 写入数据库日志；
+- 生产环境更推荐后端从 `.env` 读取 API Key；
+- 不要让大模型直接决定执行 SQL；
+- 抓取失败的来源要返回到 `failed_sources`，不要伪造内容；
+- 重大资讯必须保留 `source_url`，方便人工复核。
+
+---
+
+## 10. 健康检查
+
+## 10.1 服务健康检查
 
 ```http
 GET /health
@@ -1147,9 +1345,9 @@ GET /health
 
 ---
 
-## 10. 前端联调约定
+## 11. 前端联调约定
 
-## 10.1 Token 存储
+## 11.1 Token 存储
 
 前端登录成功后，将 token 存入：
 
@@ -1157,7 +1355,7 @@ GET /health
 localStorage.access_token
 ```
 
-## 10.2 Axios 请求拦截器
+## 11.2 Axios 请求拦截器
 
 每次请求自动加：
 
@@ -1165,7 +1363,7 @@ localStorage.access_token
 Authorization: Bearer <token>
 ```
 
-## 10.3 登录失效处理
+## 11.3 登录失效处理
 
 如果后端返回：
 
@@ -1185,7 +1383,7 @@ Authorization: Bearer <token>
 
 ---
 
-## 11. 接口开发优先级
+## 12. 接口开发优先级
 
 按照下面顺序开发，方便前后端联调：
 
@@ -1212,11 +1410,12 @@ Authorization: Bearer <token>
 20. PATCH /topics/{id}/status
 21. DELETE /topics/{id}
 22. GET /dashboard/overview
+23. POST /ai-digest/runs
 ```
 
 ---
 
-## 12. 最小联调闭环
+## 13. 最小联调闭环
 
 当前后端实现以下接口时，前端就可以做第一轮联调：
 

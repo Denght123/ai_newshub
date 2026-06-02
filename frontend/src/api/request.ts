@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
+import type { AxiosRequestConfig } from 'axios'
 import type { ApiResponse } from '@/types/common'
 import { isMockMode, mockRequest } from './mock'
 
@@ -45,9 +46,13 @@ export async function apiGet<T>(url: string, params?: Record<string, unknown>): 
   return unwrapResponse(response.data)
 }
 
-export async function apiPost<T>(url: string, data?: unknown): Promise<T> {
+export async function apiPost<T>(
+  url: string,
+  data?: unknown,
+  config?: AxiosRequestConfig,
+): Promise<T> {
   if (isMockMode()) return mockRequest<T>('POST', url, data)
-  const response = await http.post<ApiResponse<T>>(url, data)
+  const response = await http.post<ApiResponse<T>>(url, data, config)
   return unwrapResponse(response.data)
 }
 

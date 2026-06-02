@@ -17,6 +17,7 @@ withDefaults(
 
 <style scoped>
 .loading-state {
-  padding: 18px;
+  padding: 20px;
+  animation: nh-fade-up 260ms ease both;
 }
 </style>

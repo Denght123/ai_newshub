@@ -4,6 +4,7 @@ import type { NewsItem, NewsPayload } from '@/types/news'
 import type { TopicItem, TopicPayload, TopicStatus } from '@/types/topic'
 import type { CategoryItem, TagItem } from '@/types/taxonomy'
 import type { PageResult } from '@/types/common'
+import type { AIDigestRunPayload, AIDigestRunResult } from '@/types/aiDigest'
 
 const mockUser: UserInfo = {
   id: 1,
@@ -131,6 +132,7 @@ export async function mockRequest<T>(method: string, url: string, data?: unknown
   if (url === '/news' && method === 'POST') return addNews(data as NewsPayload) as T
   if (url === '/topics' && method === 'GET') return pageResult(filterTopics(params), params) as T
   if (url === '/topics' && method === 'POST') return addTopic(data as TopicPayload) as T
+  if (url === '/ai-digest/runs' && method === 'POST') return mockAIDigestRun(data as AIDigestRunPayload) as T
 
   const newsDetailMatch = url.match(/^\/news\/(\d+)$/)
   if (newsDetailMatch && method === 'GET') return findNews(Number(newsDetailMatch[1])) as T
@@ -197,6 +199,49 @@ function mockDashboard(): DashboardOverview {
       status: item.status,
       created_at: item.created_at || '',
     })),
+  }
+}
+
+function mockAIDigestRun(payload: AIDigestRunPayload): AIDigestRunResult {
+  const selectedCategories = categories.filter((category) => payload.category_ids.includes(category.id))
+  const firstCategory = selectedCategories[0] || categories[0]
+
+  return {
+    run_id: `demo-${Date.now()}`,
+    status: 'reserved',
+    message: '演示模式已收到抓取配置，真实抓取逻辑等待后端实现',
+    received_items: 3,
+    created_news_count: payload.dry_run ? 0 : 3,
+    created_topic_count: payload.create_topics && !payload.dry_run ? 2 : 0,
+    skipped_count: 0,
+    failed_sources: [],
+    preview_items: [
+      {
+        title: 'OpenAI 兼容模型接口更新带来新的内容自动化机会',
+        source_name: '官方/媒体候选',
+        source_url: 'https://example.com/openai-compatible-news',
+        matched_category: firstCategory ? { id: firstCategory.id, name: firstCategory.name } : null,
+        importance_score: 4,
+        heat_score: 4,
+        one_line_summary: '后端实现后，这类候选会由抓取工作流自动去重、评分并匹配分类。',
+      },
+      {
+        title: 'GitHub 热门 AI Agent 项目持续活跃',
+        source_name: 'GitHub Trending',
+        matched_category: selectedCategories.find((category) => category.name.includes('Agent')) || firstCategory || null,
+        importance_score: 4,
+        heat_score: 5,
+        one_line_summary: '适合转成开发者向选题，前端会展示后端返回的预览与入库统计。',
+      },
+      {
+        title: '国内大模型产品更新进入内容创作视野',
+        source_name: '可靠中文源候选',
+        matched_category: firstCategory ? { id: firstCategory.id, name: firstCategory.name } : null,
+        importance_score: 5,
+        heat_score: 4,
+        one_line_summary: '可由后端根据现有分类、标签和评分规则自动生成资讯记录。',
+      },
+    ],
   }
 }
 

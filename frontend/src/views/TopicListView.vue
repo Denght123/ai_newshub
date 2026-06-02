@@ -76,7 +76,7 @@
       </div>
     </section>
 
-    <el-dialog v-model="dialogVisible" :title="editingId ? '编辑选题' : '新建选题'" width="720px">
+    <el-dialog v-model="dialogVisible" :title="editingId ? '编辑选题' : '新建选题'" width="720px" append-to-body>
       <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
         <el-form-item label="选题标题" prop="title">
           <el-input v-model.trim="form.title" />
@@ -307,18 +307,28 @@ onMounted(() => {
 .pagination-bar {
   display: flex;
   justify-content: flex-end;
-  padding: 16px;
+  padding: 16px 18px 18px;
+  border-top: 1px solid var(--nh-border);
+  background: rgba(248, 251, 255, 0.64);
 }
 
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 12px 14px;
+}
+
+:deep(.el-table .el-button.is-text) {
+  padding-inline: 7px;
 }
 
 @media (max-width: 720px) {
   .form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .pagination-bar {
+    justify-content: center;
   }
 }
 </style>

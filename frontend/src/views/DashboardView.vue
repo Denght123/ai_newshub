@@ -96,26 +96,54 @@ onMounted(fetchOverview)
 <style scoped>
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(7, minmax(120px, 1fr));
+  grid-template-columns: repeat(7, minmax(116px, 1fr));
   gap: 12px;
 }
 
 .stat-card {
+  position: relative;
+  min-height: 118px;
   padding: 18px;
-  background: rgba(255, 255, 255, 0.82);
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 251, 255, 0.78));
   border: 1px solid var(--nh-border);
-  border-radius: 8px;
+  border-radius: var(--nh-radius);
   box-shadow: var(--nh-shadow);
+  transition:
+    border-color var(--nh-transition),
+    box-shadow var(--nh-transition),
+    transform var(--nh-transition);
+}
+
+.stat-card::before {
+  position: absolute;
+  top: 0;
+  right: 14px;
+  left: 14px;
+  height: 3px;
+  content: "";
+  background: linear-gradient(90deg, var(--nh-primary), var(--nh-accent));
+  border-radius: 999px;
+  opacity: 0.68;
+}
+
+.stat-card:hover {
+  border-color: var(--nh-border-strong);
+  box-shadow: var(--nh-shadow-hover);
+  transform: translateY(-2px);
 }
 
 .stat-card small {
   color: var(--nh-muted);
+  font-weight: 650;
 }
 
 .stat-card strong {
   display: block;
-  margin-top: 8px;
-  font-size: 28px;
+  margin-top: 10px;
+  font-size: 30px;
+  line-height: 1;
+  letter-spacing: 0;
 }
 
 .dashboard-grid {
@@ -127,10 +155,19 @@ onMounted(fetchOverview)
 h2 {
   margin: 0 0 16px;
   font-size: 18px;
+  line-height: 1.3;
 }
 
 .item-tag {
   margin-left: 8px;
+}
+
+:deep(.el-timeline) {
+  padding-left: 2px;
+}
+
+:deep(.el-timeline-item__timestamp) {
+  color: var(--nh-muted);
 }
 
 @media (max-width: 1180px) {

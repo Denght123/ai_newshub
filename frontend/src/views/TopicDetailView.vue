@@ -110,12 +110,13 @@ onMounted(fetchDetail)
 <style scoped>
 .detail-stack {
   display: grid;
-  gap: 16px;
+  gap: 18px;
 }
 
 h2 {
   margin: 12px 0 6px;
-  font-size: 28px;
+  font-size: clamp(24px, 3vw, 32px);
   letter-spacing: 0;
+  line-height: 1.24;
 }
 </style>

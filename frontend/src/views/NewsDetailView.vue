@@ -62,7 +62,7 @@
       </div>
     </section>
 
-    <el-dialog v-model="topicDialogVisible" title="从资讯创建选题" width="720px">
+    <el-dialog v-model="topicDialogVisible" title="从资讯创建选题" width="720px" append-to-body>
       <el-form ref="topicFormRef" :model="topicForm" :rules="topicRules" label-position="top">
         <el-form-item label="选题标题" prop="title">
           <el-input v-model.trim="topicForm.title" />
@@ -217,26 +217,32 @@ onMounted(fetchDetail)
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  justify-content: flex-end;
 }
 
 .detail-stack {
   display: grid;
-  gap: 16px;
+  gap: 18px;
 }
 
 h2 {
   margin: 12px 0 6px;
-  font-size: 28px;
+  font-size: clamp(24px, 3vw, 32px);
   letter-spacing: 0;
+  line-height: 1.24;
 }
 
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 12px 14px;
 }
 
 @media (max-width: 720px) {
+  .header-actions {
+    justify-content: flex-start;
+  }
+
   .form-grid {
     grid-template-columns: 1fr;
   }

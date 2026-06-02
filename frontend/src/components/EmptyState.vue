@@ -20,14 +20,25 @@ defineProps<{
   display: grid;
   min-height: 180px;
   place-items: center;
-  gap: 8px;
+  gap: 9px;
   padding: 28px;
-  color: #718078;
+  color: var(--nh-muted);
   text-align: center;
 }
 
+.empty-state :deep(.el-icon) {
+  display: grid;
+  width: 54px;
+  height: 54px;
+  place-items: center;
+  color: var(--nh-primary);
+  background: var(--nh-soft);
+  border: 1px solid var(--nh-border);
+  border-radius: var(--nh-radius);
+}
+
 strong {
-  color: #26352f;
+  color: var(--nh-ink);
   font-size: 17px;
 }
 
