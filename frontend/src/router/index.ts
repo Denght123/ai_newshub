@@ -7,7 +7,7 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      redirect: '/dashboard',
+      redirect: '/daily',
     },
     {
       path: '/login',
@@ -27,46 +27,22 @@ const router = createRouter({
       meta: { requiresAuth: true },
       children: [
         {
-          path: 'dashboard',
-          name: 'dashboard',
-          component: () => import('@/views/DashboardView.vue'),
-          meta: { title: '仪表盘' },
+          path: 'daily',
+          name: 'daily-digest',
+          component: () => import('@/views/DailyDigestView.vue'),
+          meta: { title: '每日采集' },
         },
         {
-          path: 'news',
-          name: 'news',
-          component: () => import('@/views/NewsListView.vue'),
-          meta: { title: '资讯管理' },
+          path: 'knowledge',
+          name: 'knowledge-base',
+          component: () => import('@/views/KnowledgeBaseView.vue'),
+          meta: { title: '知识库' },
         },
         {
-          path: 'news/:id',
-          name: 'news-detail',
-          component: () => import('@/views/NewsDetailView.vue'),
-          meta: { title: '资讯详情' },
-        },
-        {
-          path: 'topics',
-          name: 'topics',
-          component: () => import('@/views/TopicListView.vue'),
-          meta: { title: '选题池' },
-        },
-        {
-          path: 'topics/:id',
-          name: 'topic-detail',
-          component: () => import('@/views/TopicDetailView.vue'),
-          meta: { title: '选题详情' },
-        },
-        {
-          path: 'taxonomy',
-          name: 'taxonomy',
-          component: () => import('@/views/TaxonomyView.vue'),
-          meta: { title: '分类与标签' },
-        },
-        {
-          path: 'ai-digest',
-          name: 'ai-digest',
-          component: () => import('@/views/AIDigestView.vue'),
-          meta: { title: 'AI 自动抓取' },
+          path: 'ask',
+          name: 'rag-chat',
+          component: () => import('@/views/RagChatView.vue'),
+          meta: { title: 'AI 问答' },
         },
       ],
     },
@@ -96,7 +72,7 @@ router.beforeEach(async (to) => {
   }
 
   if (to.meta.guestOnly && authStore.isLoggedIn) {
-    return { name: 'dashboard' }
+    return { name: 'daily-digest' }
   }
 
   document.title = to.meta.title ? `${String(to.meta.title)} - AI NewsHub` : 'AI NewsHub'

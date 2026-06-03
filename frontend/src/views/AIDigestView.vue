@@ -169,15 +169,25 @@
           </div>
         </div>
 
-        <el-alert type="info" show-icon :title="result.message" />
+        <el-alert :type="result.status === 'failed' ? 'error' : 'info'" show-icon :title="result.message" />
+
+        <div v-if="result.failed_sources.length" class="failed-sources">
+          <strong>需要复核的来源</strong>
+          <span v-for="source in result.failed_sources" :key="source">{{ source }}</span>
+        </div>
 
         <div v-if="result.preview_items.length" class="preview-list">
           <article v-for="item in result.preview_items" :key="item.title" class="preview-item">
-            <strong>{{ item.title }}</strong>
+            <div class="preview-head">
+              <strong>{{ item.title }}</strong>
+              <el-tag size="small">{{ item.matched_category?.name || '未匹配分类' }}</el-tag>
+            </div>
             <p>{{ item.one_line_summary || '暂无摘要' }}</p>
             <div class="preview-meta">
               <span>{{ item.source_name || '未知来源' }}</span>
-              <span>{{ item.matched_category?.name || '未匹配分类' }}</span>
+              <span>重要 {{ item.importance_score || '-' }}</span>
+              <span>热度 {{ item.heat_score || '-' }}</span>
+              <a v-if="item.source_url" class="text-link" :href="item.source_url" target="_blank" rel="noreferrer">查看来源</a>
             </div>
           </article>
         </div>
@@ -280,14 +290,35 @@ onMounted(fetchOptions)
 
 .digest-panel {
   display: flex;
-  min-height: 94px;
+  min-height: 98px;
   align-items: center;
   gap: 14px;
   padding: 18px;
-  background: var(--nh-surface-raised);
+  background:
+    linear-gradient(180deg, rgba(255, 253, 248, 0.96), rgba(255, 250, 240, 0.86)),
+    var(--nh-surface-raised);
   border: 1px solid var(--nh-border);
   border-radius: var(--nh-radius);
   box-shadow: var(--nh-shadow);
+  animation: nh-fade-up 300ms var(--nh-transition) both;
+  transition:
+    border-color var(--nh-transition),
+    box-shadow var(--nh-transition),
+    transform var(--nh-transition);
+}
+
+.digest-panel:hover {
+  border-color: var(--nh-border-strong);
+  box-shadow: var(--nh-shadow-hover);
+  transform: translateY(-2px);
+}
+
+.digest-panel:nth-child(2) {
+  animation-delay: 40ms;
+}
+
+.digest-panel:nth-child(3) {
+  animation-delay: 80ms;
 }
 
 .panel-icon {
@@ -297,7 +328,7 @@ onMounted(fetchOptions)
   flex: 0 0 auto;
   place-items: center;
   color: var(--nh-primary-dark);
-  background: linear-gradient(135deg, var(--nh-soft), var(--nh-accent-soft));
+  background: linear-gradient(135deg, rgba(255, 253, 248, 0.96), var(--nh-accent-soft));
   border: 1px solid var(--nh-border);
   border-radius: var(--nh-radius);
 }
@@ -328,7 +359,10 @@ onMounted(fetchOptions)
 
 .form-block h2 {
   margin: 0;
+  font-family: var(--nh-font-heading);
   font-size: 18px;
+  font-weight: 750;
+  letter-spacing: 0;
   line-height: 1.3;
 }
 
@@ -358,7 +392,7 @@ onMounted(fetchOptions)
   gap: 12px;
   padding: 11px 13px;
   color: var(--nh-ink);
-  background: rgba(249, 251, 254, 0.78);
+  background: rgba(255, 253, 248, 0.76);
   border: 1px solid var(--nh-border);
   border-radius: var(--nh-radius);
 }
@@ -382,7 +416,7 @@ onMounted(fetchOptions)
 
 .result-summary div {
   padding: 14px;
-  background: rgba(249, 251, 254, 0.78);
+  background: rgba(255, 253, 248, 0.78);
   border: 1px solid var(--nh-border);
   border-radius: var(--nh-radius);
 }
@@ -395,20 +429,67 @@ onMounted(fetchOptions)
 .result-summary strong {
   display: block;
   margin-top: 6px;
-  font-size: 24px;
+  font-family: var(--nh-font-heading);
+  font-size: 28px;
+  font-weight: 750;
   line-height: 1;
+}
+
+.failed-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 12px;
+  background: rgba(255, 246, 230, 0.82);
+  border: 1px solid rgba(154, 91, 19, 0.22);
+  border-radius: var(--nh-radius);
+}
+
+.failed-sources strong {
+  color: var(--nh-warn);
+}
+
+.failed-sources span {
+  padding: 4px 8px;
+  color: var(--nh-muted);
+  background: rgba(255, 253, 248, 0.76);
+  border: 1px solid var(--nh-border);
+  border-radius: 999px;
+  font-size: 13px;
 }
 
 .preview-list {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
 .preview-item {
-  padding: 14px;
-  background: rgba(255, 255, 255, 0.78);
+  padding: 15px;
+  background: rgba(255, 253, 248, 0.78);
   border: 1px solid var(--nh-border);
   border-radius: var(--nh-radius);
+  transition:
+    border-color var(--nh-transition),
+    box-shadow var(--nh-transition),
+    transform var(--nh-transition);
+}
+
+.preview-item:hover {
+  border-color: var(--nh-border-strong);
+  box-shadow: 0 14px 28px rgba(84, 60, 28, 0.09);
+  transform: translateY(-1px);
+}
+
+.preview-head {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.preview-head strong {
+  line-height: 1.55;
 }
 
 .preview-item p {

@@ -96,19 +96,22 @@ onMounted(fetchOverview)
 <style scoped>
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(7, minmax(116px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(7, minmax(118px, 1fr));
+  gap: 14px;
 }
 
 .stat-card {
   position: relative;
-  min-height: 118px;
-  padding: 18px;
+  min-height: 124px;
+  padding: 18px 18px 16px;
   overflow: hidden;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 251, 255, 0.78));
+  background:
+    linear-gradient(180deg, rgba(255, 253, 248, 0.96), rgba(255, 250, 240, 0.82)),
+    var(--nh-paper);
   border: 1px solid var(--nh-border);
   border-radius: var(--nh-radius);
   box-shadow: var(--nh-shadow);
+  animation: nh-fade-up 280ms var(--nh-transition) both;
   transition:
     border-color var(--nh-transition),
     box-shadow var(--nh-transition),
@@ -118,13 +121,20 @@ onMounted(fetchOverview)
 .stat-card::before {
   position: absolute;
   top: 0;
-  right: 14px;
-  left: 14px;
-  height: 3px;
+  bottom: 0;
+  left: 0;
+  width: 4px;
   content: "";
-  background: linear-gradient(90deg, var(--nh-primary), var(--nh-accent));
-  border-radius: 999px;
-  opacity: 0.68;
+  background: var(--nh-primary);
+  opacity: 0.72;
+}
+
+.stat-card:nth-child(2n)::before {
+  background: var(--nh-accent);
+}
+
+.stat-card:nth-child(3n)::before {
+  background: var(--nh-warn);
 }
 
 .stat-card:hover {
@@ -140,8 +150,10 @@ onMounted(fetchOverview)
 
 .stat-card strong {
   display: block;
-  margin-top: 10px;
-  font-size: 30px;
+  margin-top: 14px;
+  font-family: var(--nh-font-heading);
+  font-size: 34px;
+  font-weight: 750;
   line-height: 1;
   letter-spacing: 0;
 }
@@ -149,12 +161,15 @@ onMounted(fetchOverview)
 .dashboard-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
+  gap: 20px;
 }
 
 h2 {
   margin: 0 0 16px;
+  font-family: var(--nh-font-heading);
   font-size: 18px;
+  font-weight: 750;
+  letter-spacing: 0;
   line-height: 1.3;
 }
 
@@ -168,6 +183,14 @@ h2 {
 
 :deep(.el-timeline-item__timestamp) {
   color: var(--nh-muted);
+}
+
+:deep(.el-timeline-item__node) {
+  background-color: var(--nh-primary);
+}
+
+:deep(.el-timeline-item__tail) {
+  border-left-color: var(--nh-border);
 }
 
 @media (max-width: 1180px) {

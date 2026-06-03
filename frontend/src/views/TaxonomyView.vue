@@ -266,10 +266,10 @@ onMounted(fetchAll)
   gap: 10px;
   min-height: 44px;
   padding: 8px 8px 8px 14px;
-  background: rgba(249, 251, 254, 0.84);
+  background: rgba(255, 253, 248, 0.84);
   border: 1px solid var(--nh-border);
   border-radius: var(--nh-radius);
-  box-shadow: 0 8px 20px rgba(16, 24, 40, 0.04);
+  box-shadow: 0 8px 20px rgba(84, 60, 28, 0.06);
   transition:
     border-color var(--nh-transition),
     box-shadow var(--nh-transition),
@@ -278,7 +278,7 @@ onMounted(fetchAll)
 
 .tag-card:hover {
   border-color: var(--nh-border-strong);
-  box-shadow: 0 14px 28px rgba(16, 24, 40, 0.08);
+  box-shadow: 0 14px 28px rgba(84, 60, 28, 0.1);
   transform: translateY(-1px);
 }
 

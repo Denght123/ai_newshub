@@ -5,6 +5,13 @@ import type { TopicItem, TopicPayload, TopicStatus } from '@/types/topic'
 import type { CategoryItem, TagItem } from '@/types/taxonomy'
 import type { PageResult } from '@/types/common'
 import type { AIDigestRunPayload, AIDigestRunResult } from '@/types/aiDigest'
+import type {
+  DailyDigestRunPayload as RagDailyDigestRunPayload,
+  DailyDigestRunResult as RagDailyDigestRunResult,
+  KnowledgeDocumentDetail,
+  RagChatPayload,
+  RagChatResult,
+} from '@/types/rag'
 
 const mockUser: UserInfo = {
   id: 1,
@@ -115,6 +122,49 @@ let topicList: TopicItem[] = [
   },
 ]
 
+const knowledgeDocuments: KnowledgeDocumentDetail[] = [
+  {
+    id: 1,
+    title: 'OpenAI 兼容接口生态继续扩张',
+    summary: '越来越多第三方模型服务采用 OpenAI-compatible API，方便开发者复用同一套调用逻辑。',
+    source_name: 'Reserved Source',
+    source_url: 'https://example.com/openai-compatible',
+    published_at: '2026-06-03T09:30:00',
+    digest_date: '2026-06-03',
+    credibility: 'medium',
+    content: '这条示例文档用于演示 RAG 知识库列表和详情页。真实后端完成后，正文会来自固定抓取 skill 的结果。',
+    chunks: [
+      {
+        id: 1,
+        chunk_index: 0,
+        chunk_text: 'OpenAI-compatible API 让不同模型供应商可以共用相近的请求格式。',
+      },
+      {
+        id: 2,
+        chunk_index: 1,
+        chunk_text: '对本项目来说，这意味着用户填入 Base URL、API Key 和模型名后，就能切换第三方大模型。',
+      },
+    ],
+  },
+  {
+    id: 2,
+    title: 'RAG 成为资讯沉淀的常见方案',
+    summary: '抓取后的资讯不再只作为列表展示，而是被切分为 chunk，供后续问答和选题推荐检索。',
+    source_name: 'AI NewsHub Demo',
+    published_at: '2026-06-03T11:00:00',
+    digest_date: '2026-06-03',
+    credibility: 'high',
+    content: 'RAG 的核心是先检索可信资料，再让模型基于资料回答，降低凭空编造的风险。',
+    chunks: [
+      {
+        id: 3,
+        chunk_index: 0,
+        chunk_text: 'RAG 问答应返回引用来源，让用户知道答案来自哪一天、哪条资讯。',
+      },
+    ],
+  },
+]
+
 export function isMockMode() {
   return localStorage.getItem('ai_newshub_mock') === '1'
 }
@@ -133,6 +183,9 @@ export async function mockRequest<T>(method: string, url: string, data?: unknown
   if (url === '/topics' && method === 'GET') return pageResult(filterTopics(params), params) as T
   if (url === '/topics' && method === 'POST') return addTopic(data as TopicPayload) as T
   if (url === '/ai-digest/runs' && method === 'POST') return mockAIDigestRun(data as AIDigestRunPayload) as T
+  if (url === '/daily-digest/runs' && method === 'POST') return mockDailyDigestRun(data as RagDailyDigestRunPayload) as T
+  if (url === '/knowledge/documents' && method === 'GET') return pageResult(filterKnowledgeDocuments(params), params) as T
+  if (url === '/rag-chat/ask' && method === 'POST') return mockRagChatAnswer(data as RagChatPayload) as T
 
   const newsDetailMatch = url.match(/^\/news\/(\d+)$/)
   if (newsDetailMatch && method === 'GET') return findNews(Number(newsDetailMatch[1])) as T
@@ -158,6 +211,9 @@ export async function mockRequest<T>(method: string, url: string, data?: unknown
 
   const topicStatusMatch = url.match(/^\/topics\/(\d+)\/status$/)
   if (topicStatusMatch && method === 'PATCH') return updateMockTopicStatus(Number(topicStatusMatch[1]), data as { status: TopicStatus }) as T
+
+  const knowledgeDetailMatch = url.match(/^\/knowledge\/documents\/(\d+)$/)
+  if (knowledgeDetailMatch && method === 'GET') return findKnowledgeDocument(Number(knowledgeDetailMatch[1])) as T
 
   throw new Error(`演示模式暂未覆盖接口：${method} ${url}`)
 }
@@ -242,6 +298,70 @@ function mockAIDigestRun(payload: AIDigestRunPayload): AIDigestRunResult {
         one_line_summary: '可由后端根据现有分类、标签和评分规则自动生成资讯记录。',
       },
     ],
+  }
+}
+
+function mockDailyDigestRun(payload: RagDailyDigestRunPayload): RagDailyDigestRunResult {
+  const digestDate = payload.digest_date || new Date().toISOString().slice(0, 10)
+
+  return {
+    run_id: `demo-rag-${Date.now()}`,
+    status: 'reserved',
+    digest_date: digestDate,
+    message: payload.dry_run ? '演示模式：本次只预览，不写入知识库' : '演示模式：模拟写入知识库完成',
+    collected_count: 2,
+    document_count: payload.dry_run ? 0 : 2,
+    chunk_count: payload.dry_run ? 0 : 3,
+    failed_sources: [],
+    preview_items: knowledgeDocuments.slice(0, 2).map((item) => ({
+      title: item.title,
+      summary: item.summary,
+      source_name: item.source_name,
+      source_url: item.source_url,
+      published_at: item.published_at,
+      credibility: item.credibility,
+    })),
+  }
+}
+
+function filterKnowledgeDocuments(params?: Record<string, unknown>) {
+  const keyword = String(params?.keyword || '').toLowerCase()
+  return knowledgeDocuments.filter((item) => {
+    const matchDate = !params?.digest_date || item.digest_date === params.digest_date
+    const matchKeyword =
+      !keyword ||
+      [item.title, item.summary, item.source_name, item.content]
+        .some((value) => value?.toLowerCase().includes(keyword))
+    return matchDate && matchKeyword
+  })
+}
+
+function findKnowledgeDocument(id: number) {
+  const item = knowledgeDocuments.find((document) => document.id === id)
+  if (!item) throw new Error('演示知识文档不存在')
+  return item
+}
+
+function mockRagChatAnswer(payload: RagChatPayload): RagChatResult {
+  const firstDocument = knowledgeDocuments[0]
+
+  return {
+    answer: `演示回答：你问的是“${payload.question}”。真实后端会先按日期范围检索 RAG chunk，再把命中的资料交给大模型回答。`,
+    citations: [
+      {
+        document_id: firstDocument.id,
+        title: firstDocument.title,
+        source_name: firstDocument.source_name,
+        source_url: firstDocument.source_url,
+        digest_date: firstDocument.digest_date,
+      },
+    ],
+    matched_chunks: firstDocument.chunks.map((chunk) => ({
+      chunk_id: chunk.id,
+      document_id: firstDocument.id,
+      chunk_text: chunk.chunk_text,
+      score: 0.82,
+    })),
   }
 }
 

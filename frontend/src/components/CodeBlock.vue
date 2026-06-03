@@ -46,8 +46,8 @@ watch(() => props.code, highlight)
   margin: 0;
   padding: 16px;
   overflow: auto;
-  background: #f1f6f2;
-  border: 1px solid #dce6df;
+  background: rgba(255, 253, 248, 0.82);
+  border: 1px solid var(--nh-border);
   border-radius: 8px;
   line-height: 1.7;
 }

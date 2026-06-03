@@ -3,8 +3,8 @@
     <section class="not-found-panel">
       <AppLogo />
       <h1>页面不存在</h1>
-      <p>这个地址没有对应的页面，可以回到仪表盘继续整理资讯。</p>
-      <el-button type="primary" @click="router.push('/dashboard')">回到仪表盘</el-button>
+      <p>这个地址没有对应的页面，可以回到每日采集继续整理资讯。</p>
+      <el-button type="primary" @click="router.push('/daily')">回到每日采集</el-button>
     </section>
   </main>
 </template>
@@ -20,38 +20,52 @@ const router = useRouter()
 .not-found-page {
   position: relative;
   display: grid;
-  min-height: 100vh;
+  min-height: 100dvh;
   place-items: center;
   padding: 24px;
   overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(255, 250, 240, 0.82), rgba(239, 225, 201, 0.72)),
+    repeating-linear-gradient(
+      0deg,
+      transparent 0,
+      transparent 31px,
+      var(--nh-line) 32px,
+      transparent 33px
+    );
 }
 
 .not-found-page::before {
   position: absolute;
-  inset: 0;
+  inset: 18px;
   z-index: -1;
   content: "";
-  background:
-    linear-gradient(120deg, rgba(45, 108, 223, 0.12), transparent 42%),
-    linear-gradient(300deg, rgba(22, 163, 148, 0.13), transparent 48%);
+  border: 1px solid rgba(205, 179, 139, 0.36);
+  border-radius: var(--nh-radius);
+  pointer-events: none;
 }
 
 .not-found-panel {
+  position: relative;
   display: grid;
   width: min(440px, 100%);
   gap: 18px;
   padding: 36px;
-  background: rgba(255, 255, 255, 0.88);
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(255, 253, 248, 0.98), rgba(255, 250, 240, 0.92)),
+    var(--nh-paper);
   border: 1px solid var(--nh-border);
   border-radius: var(--nh-radius);
   box-shadow: var(--nh-shadow);
-  backdrop-filter: blur(18px);
-  animation: nh-fade-up 360ms ease both;
+  animation: nh-fade-up 340ms var(--nh-transition) both;
 }
 
 h1 {
   margin: 0;
+  font-family: var(--nh-font-heading);
   font-size: 32px;
+  font-weight: 750;
   letter-spacing: 0;
   line-height: 1.18;
 }

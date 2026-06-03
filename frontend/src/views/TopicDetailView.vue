@@ -115,8 +115,16 @@ onMounted(fetchDetail)
 
 h2 {
   margin: 12px 0 6px;
-  font-size: clamp(24px, 3vw, 32px);
+  font-family: var(--nh-font-heading);
+  font-size: 31px;
+  font-weight: 750;
   letter-spacing: 0;
   line-height: 1.24;
+}
+
+@media (max-width: 720px) {
+  h2 {
+    font-size: 27px;
+  }
 }
 </style>

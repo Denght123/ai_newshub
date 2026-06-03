@@ -335,7 +335,7 @@ onMounted(() => {
   justify-content: flex-end;
   padding: 16px 18px 18px;
   border-top: 1px solid var(--nh-border);
-  background: rgba(248, 251, 255, 0.64);
+  background: rgba(255, 250, 240, 0.72);
 }
 
 .form-grid {

@@ -1,13 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers.ai_digest import router as ai_digest_router
 from routers.auth import router as auth_router
-from routers.categories import router as categories_router
-from routers.dashboard import router as dashboard_router
+from routers.daily_digest import router as daily_digest_router
 from routers.health import router as health_router
-from routers.news import router as news_router
-from routers.tags import router as tags_router
-from routers.topics import router as topics_router
+from routers.knowledge import router as knowledge_router
+from routers.rag_chat import router as rag_chat_router
 from utils.exception_handlers import register_exception_handlers
 
 app = FastAPI(title="AI NewsHub Backend")
@@ -23,12 +20,9 @@ app.add_middleware(
 API_PREFIX = "/api/v1"
 
 app.include_router(auth_router, prefix=API_PREFIX)
-app.include_router(categories_router, prefix=API_PREFIX)
-app.include_router(tags_router, prefix=API_PREFIX)
-app.include_router(news_router, prefix=API_PREFIX)
-app.include_router(topics_router, prefix=API_PREFIX)
-app.include_router(dashboard_router, prefix=API_PREFIX)
-app.include_router(ai_digest_router, prefix=API_PREFIX)
+app.include_router(daily_digest_router, prefix=API_PREFIX)
+app.include_router(knowledge_router, prefix=API_PREFIX)
+app.include_router(rag_chat_router, prefix=API_PREFIX)
 app.include_router(health_router, prefix=API_PREFIX)
 
 register_exception_handlers(app)

@@ -3,34 +3,26 @@
     <el-aside class="sidebar" width="248px">
       <AppLogo />
       <el-menu :default-active="route.path" router class="nav-menu">
-        <el-menu-item index="/dashboard">
-          <el-icon><DataBoard /></el-icon>
-          <span>仪表盘</span>
-        </el-menu-item>
-        <el-menu-item index="/news">
-          <el-icon><Reading /></el-icon>
-          <span>资讯管理</span>
-        </el-menu-item>
-        <el-menu-item index="/topics">
-          <el-icon><Collection /></el-icon>
-          <span>选题池</span>
-        </el-menu-item>
-        <el-menu-item index="/taxonomy">
-          <el-icon><PriceTag /></el-icon>
-          <span>分类与标签</span>
-        </el-menu-item>
-        <el-menu-item index="/ai-digest">
+        <el-menu-item index="/daily">
           <el-icon><MagicStick /></el-icon>
-          <span>AI 自动抓取</span>
+          <span>每日采集</span>
+        </el-menu-item>
+        <el-menu-item index="/knowledge">
+          <el-icon><Files /></el-icon>
+          <span>知识库</span>
+        </el-menu-item>
+        <el-menu-item index="/ask">
+          <el-icon><ChatLineRound /></el-icon>
+          <span>AI 问答</span>
         </el-menu-item>
       </el-menu>
     </el-aside>
 
     <el-container>
       <el-header class="topbar">
-        <div>
+        <div class="topbar-copy">
           <span class="topbar-title">{{ route.meta.title || 'AI NewsHub' }}</span>
-          <small>把资讯沉淀成可跟进的内容选题</small>
+          <small>把每日 AI 资讯沉淀为可检索、可追溯的 RAG 知识库</small>
         </div>
         <el-dropdown>
           <el-button>
@@ -56,7 +48,7 @@
 
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router'
-import { Collection, DataBoard, MagicStick, PriceTag, Reading, User } from '@element-plus/icons-vue'
+import { ChatLineRound, Files, MagicStick, User } from '@element-plus/icons-vue'
 import AppLogo from '@/components/AppLogo.vue'
 import { useAuthStore } from '@/stores/auth'
 import { isMockMode } from '@/api/mock'
@@ -75,43 +67,52 @@ function handleLogout() {
 
 <style scoped>
 .app-layout {
-  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .sidebar {
   position: sticky;
   top: 0;
-  height: 100vh;
-  padding: 24px 14px;
+  height: 100dvh;
+  padding: 24px 14px 18px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 251, 255, 0.9)),
-    var(--nh-surface);
+    linear-gradient(180deg, rgba(255, 250, 240, 0.98), rgba(239, 225, 201, 0.9)),
+    repeating-linear-gradient(
+      0deg,
+      transparent 0,
+      transparent 31px,
+      rgba(145, 108, 62, 0.08) 32px,
+      transparent 33px
+    ),
+    var(--nh-paper);
   border-right: 1px solid var(--nh-border);
-  box-shadow: 12px 0 34px rgba(16, 24, 40, 0.04);
-  backdrop-filter: blur(18px);
+  box-shadow: 14px 0 34px rgba(84, 60, 28, 0.08);
 }
 
 .nav-menu {
-  margin-top: 30px;
+  margin-top: 28px;
   background: transparent;
   border-right: 0;
 }
 
 .nav-menu :deep(.el-menu-item) {
-  height: 44px;
+  height: 46px;
   margin: 7px 0;
   padding: 0 14px !important;
-  color: #4d5a6c;
+  color: #5f5548;
   border-radius: var(--nh-radius);
   transition:
     background-color var(--nh-transition),
     color var(--nh-transition),
+    box-shadow var(--nh-transition),
     transform var(--nh-transition);
 }
 
 .nav-menu :deep(.el-menu-item:hover) {
   color: var(--nh-primary-dark);
-  background: rgba(45, 108, 223, 0.08);
+  background: rgba(255, 253, 248, 0.72);
+  box-shadow: inset 0 0 0 1px var(--nh-border);
+  transform: translateX(2px);
 }
 
 .nav-menu :deep(.el-menu-item .el-icon) {
@@ -121,8 +122,10 @@ function handleLogout() {
 
 .nav-menu :deep(.is-active) {
   color: var(--nh-primary-dark);
-  background: linear-gradient(135deg, var(--nh-soft), rgba(232, 251, 247, 0.88));
-  box-shadow: inset 3px 0 0 var(--nh-primary);
+  background: linear-gradient(135deg, rgba(255, 253, 248, 0.96), rgba(232, 240, 235, 0.84));
+  box-shadow:
+    inset 3px 0 0 var(--nh-primary),
+    0 10px 24px rgba(83, 60, 30, 0.08);
 }
 
 .topbar {
@@ -134,15 +137,22 @@ function handleLogout() {
   justify-content: space-between;
   height: 74px;
   padding: 0 30px;
-  background: rgba(246, 248, 251, 0.78);
+  background:
+    linear-gradient(180deg, rgba(255, 250, 240, 0.9), rgba(247, 240, 227, 0.76));
   border-bottom: 1px solid var(--nh-border);
-  backdrop-filter: blur(18px);
+  backdrop-filter: blur(14px);
+}
+
+.topbar-copy {
+  min-width: 0;
 }
 
 .topbar-title {
   display: block;
-  font-size: 18px;
+  font-family: var(--nh-font-heading);
+  font-size: 20px;
   font-weight: 760;
+  letter-spacing: 0;
   line-height: 1.3;
 }
 
@@ -153,11 +163,13 @@ function handleLogout() {
 
 .topbar :deep(.el-button) {
   min-width: 104px;
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 253, 248, 0.78);
 }
 
 .main-content {
+  width: min(100%, 1500px);
   padding: 30px;
+  margin: 0 auto;
 }
 
 @media (max-width: 860px) {
@@ -170,6 +182,8 @@ function handleLogout() {
     width: 100% !important;
     height: auto;
     padding: 18px;
+    border-right: 0;
+    border-bottom: 1px solid var(--nh-border);
   }
 
   .nav-menu {

@@ -20,10 +20,11 @@ defineProps<{
   display: grid;
   min-height: 180px;
   place-items: center;
-  gap: 9px;
+  gap: 10px;
   padding: 28px;
   color: var(--nh-muted);
   text-align: center;
+  animation: nh-fade-up 260ms var(--nh-transition) both;
 }
 
 .empty-state :deep(.el-icon) {
@@ -31,10 +32,11 @@ defineProps<{
   width: 54px;
   height: 54px;
   place-items: center;
-  color: var(--nh-primary);
-  background: var(--nh-soft);
+  color: var(--nh-primary-dark);
+  background: rgba(255, 253, 248, 0.82);
   border: 1px solid var(--nh-border);
   border-radius: var(--nh-radius);
+  box-shadow: 0 10px 22px rgba(84, 60, 28, 0.08);
 }
 
 strong {

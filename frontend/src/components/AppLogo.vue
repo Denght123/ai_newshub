@@ -5,7 +5,7 @@
     </div>
     <div>
       <strong>AI NewsHub</strong>
-      <small>资讯与选题工作台</small>
+      <small>每日资讯 RAG 知识库</small>
     </div>
   </div>
 </template>
@@ -26,28 +26,46 @@
   height: 40px;
   place-items: center;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.62);
+  border: 1px solid var(--nh-border-strong);
   border-radius: var(--nh-radius);
-  background: linear-gradient(145deg, var(--nh-primary), var(--nh-accent));
-  box-shadow: 0 12px 28px rgba(45, 108, 223, 0.22);
+  background:
+    linear-gradient(135deg, var(--nh-paper-soft), var(--nh-soft)),
+    var(--nh-paper);
+  box-shadow: 0 12px 24px rgba(84, 60, 28, 0.14);
 }
 
 .mark::before {
   position: absolute;
-  inset: 4px;
+  top: 0;
+  right: 0;
+  width: 13px;
+  height: 13px;
   content: "";
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 6px;
+  background: linear-gradient(135deg, rgba(232, 240, 235, 0.9), rgba(205, 179, 139, 0.72));
+  border-bottom: 1px solid var(--nh-border-strong);
+  border-left: 1px solid var(--nh-border-strong);
+  border-radius: 0 0 0 6px;
 }
 
 .mark span {
   position: relative;
-  width: 17px;
-  height: 17px;
-  border: 3px solid rgba(255, 255, 255, 0.94);
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--nh-primary);
   border-radius: 50%;
-  border-right-color: rgba(255, 255, 255, 0.45);
-  animation: logo-pulse 3.8s ease-in-out infinite;
+  border-right-color: rgba(53, 97, 90, 0.3);
+}
+
+.mark span::after {
+  position: absolute;
+  right: -7px;
+  bottom: -4px;
+  width: 8px;
+  height: 2px;
+  content: "";
+  background: var(--nh-primary);
+  border-radius: 999px;
+  transform: rotate(45deg);
 }
 
 strong,
@@ -74,14 +92,4 @@ small {
   line-height: 1.2;
 }
 
-@keyframes logo-pulse {
-  0%,
-  100% {
-    transform: rotate(0deg) scale(1);
-  }
-
-  50% {
-    transform: rotate(26deg) scale(0.94);
-  }
-}
 </style>

@@ -63,7 +63,7 @@ async function handleSubmit() {
   try {
     await authStore.login(form)
     ElMessage.success('登录成功')
-    router.push(String(route.query.redirect || '/dashboard'))
+    router.push(String(route.query.redirect || '/daily'))
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '登录失败，请检查账号密码')
   } finally {
@@ -80,7 +80,7 @@ async function handleDemoLogin() {
       password: '123456',
     })
     ElMessage.success('已进入演示模式')
-    router.push('/dashboard')
+    router.push('/daily')
   } finally {
     demoLoading.value = false
   }
@@ -91,38 +91,72 @@ async function handleDemoLogin() {
 .auth-page {
   position: relative;
   display: grid;
-  min-height: 100vh;
+  min-height: 100dvh;
   place-items: center;
   padding: 24px;
   overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(255, 250, 240, 0.82), rgba(239, 225, 201, 0.72)),
+    repeating-linear-gradient(
+      0deg,
+      transparent 0,
+      transparent 31px,
+      var(--nh-line) 32px,
+      transparent 33px
+    );
 }
 
 .auth-page::before {
   position: absolute;
-  inset: 0;
+  inset: 18px;
   z-index: -1;
   content: "";
-  background:
-    linear-gradient(120deg, rgba(45, 108, 223, 0.12), transparent 42%),
-    linear-gradient(300deg, rgba(22, 163, 148, 0.13), transparent 48%);
+  border: 1px solid rgba(205, 179, 139, 0.36);
+  border-radius: var(--nh-radius);
+  pointer-events: none;
 }
 
 .auth-panel {
+  position: relative;
   display: grid;
   width: min(440px, 100%);
   gap: 24px;
   padding: 36px;
-  background: rgba(255, 255, 255, 0.88);
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(255, 253, 248, 0.98), rgba(255, 250, 240, 0.92)),
+    var(--nh-paper);
   border: 1px solid var(--nh-border);
   border-radius: var(--nh-radius);
   box-shadow: var(--nh-shadow);
-  backdrop-filter: blur(18px);
-  animation: nh-fade-up 360ms ease both;
+  animation: nh-fade-up 340ms var(--nh-transition) both;
+}
+
+.auth-panel::before {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent 0,
+      transparent 31px,
+      rgba(145, 108, 62, 0.055) 32px,
+      transparent 33px
+    );
+  opacity: 0.65;
+}
+
+.auth-panel > * {
+  position: relative;
 }
 
 h1 {
   margin: 0;
+  font-family: var(--nh-font-heading);
   font-size: 34px;
+  font-weight: 750;
   letter-spacing: 0;
   line-height: 1.12;
 }
@@ -139,7 +173,7 @@ p {
 
 .demo-button {
   margin: 10px 0 0;
-  background: rgba(255, 255, 255, 0.68);
+  background: rgba(255, 253, 248, 0.72);
 }
 
 .switch-text {
