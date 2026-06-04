@@ -55,6 +55,7 @@ export interface KnowledgeDocumentDetail extends KnowledgeDocumentItem {
 }
 
 export interface RagChatPayload {
+  session_id?: number | null
   question: string
   date_from?: string
   date_to?: string
@@ -77,7 +78,33 @@ export interface MatchedChunk {
 }
 
 export interface RagChatResult {
+  session_id?: number
+  session_title?: string
   answer: string
   citations: RagCitation[]
   matched_chunks: MatchedChunk[]
+}
+
+export interface RagChatSession {
+  id: number
+  title: string
+  created_at: string
+  updated_at: string
+}
+
+export interface RagMessageMetadata {
+  citations?: RagCitation[]
+  matched_chunks?: MatchedChunk[]
+}
+
+export interface RagChatMessage {
+  id: number
+  role: 'user' | 'assistant' | string
+  content: string
+  metadata?: RagMessageMetadata | null
+  created_at: string
+}
+
+export interface RagChatSessionDetail extends RagChatSession {
+  messages: RagChatMessage[]
 }

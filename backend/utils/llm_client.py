@@ -1,12 +1,51 @@
+from collections.abc import AsyncIterator, Mapping, Sequence
+from typing import TypedDict, cast
+
 import httpx
 
 
+class ChatMessageResponse(TypedDict):
+    content: str
+
+
+class ChatChoiceResponse(TypedDict):
+    message: ChatMessageResponse
+
+
+class ChatCompletionResponse(TypedDict):
+    choices: list[ChatChoiceResponse]
+
+
+class EmbeddingDataResponse(TypedDict):
+    embedding: list[float]
+
+
+class EmbeddingResponse(TypedDict):
+    data: list[EmbeddingDataResponse]
+
+
+__all__ = [
+    "ChatCompletionResponse",
+    "call_openai_compatible_chat",
+    "call_openai_compatible_embeddings",
+    "stream_openai_compatible_chat",
+]
+
+
 # 拼出聊天补全接口地址：兼容传入 base_url 或完整 /chat/completions 地址两种情况。
-def build_chat_completions_url(api_base_url: str):
+def build_chat_completions_url(api_base_url: str) -> str:
     base_url = api_base_url.rstrip("/")
     if base_url.endswith("/chat/completions"):
         return base_url
     return f"{base_url}/chat/completions"
+
+
+# 拼出 embeddings 接口地址：兼容传入 base_url 或完整 /embeddings 地址两种情况。
+def build_embeddings_url(api_base_url: str) -> str:
+    base_url = api_base_url.rstrip("/")
+    if base_url.endswith("/embeddings"):
+        return base_url
+    return f"{base_url}/embeddings"
 
 
 # 调用 OpenAI-compatible 大模型接口：传入 base_url、api_key、model 和 messages，返回模型原始 JSON。
@@ -14,8 +53,8 @@ async def call_openai_compatible_chat(
     api_base_url: str,
     api_key: str,
     model: str,
-    messages: list[dict],
-):
+    messages: Sequence[Mapping[str, str]],
+) -> ChatCompletionResponse:
     url = build_chat_completions_url(api_base_url)
 
     headers = {
@@ -32,11 +71,41 @@ async def call_openai_compatible_chat(
     async with httpx.AsyncClient(timeout=60) as client:
         response = await client.post(url, headers=headers, json=payload)
         try:
-            response.raise_for_status()
+            _ = response.raise_for_status()
         except httpx.HTTPStatusError as err:
             detail = response.text[:500]
             raise ValueError(f"LLM API request failed: {response.status_code} {detail}") from err
-        return response.json()
+        return cast(ChatCompletionResponse, response.json())
+
+
+# 调用 OpenAI-compatible embeddings 接口：把文本转换成向量，供 RAG 语义检索使用。
+async def call_openai_compatible_embeddings(
+    api_base_url: str,
+    api_key: str,
+    model: str,
+    texts: Sequence[str],
+) -> list[list[float]]:
+    url = build_embeddings_url(api_base_url)
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "model": model,
+        "input": list(texts),
+    }
+
+    async with httpx.AsyncClient(timeout=60) as client:
+        response = await client.post(url, headers=headers, json=payload)
+        try:
+            _ = response.raise_for_status()
+        except httpx.HTTPStatusError as err:
+            detail = response.text[:500]
+            raise ValueError(f"Embedding API request failed: {response.status_code} {detail}") from err
+
+        response_json = cast(EmbeddingResponse, response.json())
+        return [item["embedding"] for item in response_json["data"]]
 
 
 # 流式调用 OpenAI-compatible 大模型接口：逐段产出 delta 文本，供 SSE 接口转发给前端。
@@ -44,8 +113,8 @@ async def stream_openai_compatible_chat(
     api_base_url: str,
     api_key: str,
     model: str,
-    messages: list[dict],
-):
+    messages: Sequence[Mapping[str, str]],
+) -> AsyncIterator[str]:
     url = build_chat_completions_url(api_base_url)
 
     headers = {
@@ -63,7 +132,7 @@ async def stream_openai_compatible_chat(
     async with httpx.AsyncClient(timeout=120) as client:
         async with client.stream("POST", url, headers=headers, json=payload) as response:
             try:
-                response.raise_for_status()
+                _ = response.raise_for_status()
             except httpx.HTTPStatusError as err:
                 body = await response.aread()
                 detail = body.decode("utf-8", errors="replace")[:500]

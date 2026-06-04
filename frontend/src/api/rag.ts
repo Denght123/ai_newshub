@@ -1,6 +1,5 @@
-import { apiGet, apiPost } from './request'
+import { apiDelete, apiGet, apiPost } from './request'
 import { isMockMode } from './mock'
-import { getLocalDateString } from '@/utils/date'
 import type {
   DailyDigestRunPayload,
   DailyDigestRunResult,
@@ -9,13 +8,17 @@ import type {
   MatchedChunk,
   RagChatPayload,
   RagCitation,
+  RagChatSession,
+  RagChatSessionDetail,
   RagChatResult,
 } from '@/types/rag'
 import type { PageResult } from '@/types/common'
 
 const baseURL = import.meta.env.VITE_API_BASE_URL || '/api/v1'
 
-interface StreamDonePayload {
+export interface StreamDonePayload {
+  session_id?: number
+  session_title?: string
   citations?: RagCitation[]
   matched_chunks?: MatchedChunk[]
 }
@@ -45,38 +48,36 @@ export function askRagChat(payload: RagChatPayload) {
   })
 }
 
+export function getRagChatSessions() {
+  return apiGet<RagChatSession[]>('/rag-chat/sessions')
+}
+
+export function getRagChatSessionDetail(sessionId: number) {
+  return apiGet<RagChatSessionDetail>(`/rag-chat/sessions/${sessionId}`)
+}
+
+export function deleteRagChatSession(sessionId: number) {
+  return apiDelete<null>(`/rag-chat/sessions/${sessionId}`)
+}
+
 export async function streamRagChat(
   payload: RagChatPayload,
   onDelta: (content: string) => void,
   onDone?: (data?: StreamDonePayload) => void,
 ) {
   if (isMockMode()) {
-    const demoParts = [
-      '演示模式：我会先从知识库里检索日期和关键词，',
-      '再把命中的片段交给大模型组织回答。',
-      `你当前的问题是：${payload.question}`,
-    ]
+    const result = await askRagChat(payload)
+    const demoParts = result.answer.match(/[\s\S]{1,18}/g) || [result.answer]
+
     for (const part of demoParts) {
       await new Promise((resolve) => window.setTimeout(resolve, 180))
       onDelta(part)
     }
     onDone?.({
-      citations: [
-        {
-          document_id: 1,
-          title: '示例知识文档：等待后端入库逻辑接入',
-          source_name: 'Reserved Source',
-          digest_date: payload.date_from || getLocalDateString(),
-        },
-      ],
-      matched_chunks: [
-        {
-          chunk_id: 1,
-          document_id: 1,
-          chunk_text: '这里会显示后端 RAG 检索命中的知识片段。',
-          score: 0.82,
-        },
-      ],
+      session_id: result.session_id,
+      session_title: result.session_title,
+      citations: result.citations,
+      matched_chunks: result.matched_chunks,
     })
     return
   }

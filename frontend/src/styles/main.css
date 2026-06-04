@@ -114,7 +114,6 @@ button,
 .page {
   display: grid;
   gap: 22px;
-  animation: nh-page-in 300ms var(--nh-transition) both;
 }
 
 .page-header {

@@ -9,8 +9,11 @@ import type {
   DailyDigestRunPayload as RagDailyDigestRunPayload,
   DailyDigestRunResult as RagDailyDigestRunResult,
   KnowledgeDocumentDetail,
+  RagChatMessage,
   RagChatPayload,
   RagChatResult,
+  RagChatSession,
+  RagChatSessionDetail,
 } from '@/types/rag'
 
 const mockUser: UserInfo = {
@@ -165,6 +168,51 @@ const knowledgeDocuments: KnowledgeDocumentDetail[] = [
   },
 ]
 
+let ragChatSessions: RagChatSession[] = [
+  {
+    id: 1,
+    title: '今天有哪些重要 AI 消息？',
+    created_at: '2026-06-03T11:30:00',
+    updated_at: '2026-06-03T11:34:00',
+  },
+]
+
+type MockRagChatMessage = RagChatMessage & { session_id: number }
+
+let ragChatMessages: MockRagChatMessage[] = [
+  {
+    id: 1,
+    session_id: 1,
+    role: 'user',
+    content: '今天有哪些重要 AI 消息？',
+    created_at: '2026-06-03T11:30:00',
+  },
+  {
+    id: 2,
+    session_id: 1,
+    role: 'assistant',
+    content: '演示回答：今天可以重点关注 OpenAI-compatible 接口生态和 RAG 资讯沉淀方案。',
+    metadata: {
+      citations: [
+        {
+          document_id: 1,
+          title: knowledgeDocuments[0].title,
+          source_name: knowledgeDocuments[0].source_name,
+          source_url: knowledgeDocuments[0].source_url,
+          digest_date: knowledgeDocuments[0].digest_date,
+        },
+      ],
+      matched_chunks: knowledgeDocuments[0].chunks.map((chunk) => ({
+        chunk_id: chunk.id,
+        document_id: knowledgeDocuments[0].id,
+        chunk_text: chunk.chunk_text,
+        score: 0.82,
+      })),
+    },
+    created_at: '2026-06-03T11:34:00',
+  },
+]
+
 export function isMockMode() {
   return localStorage.getItem('ai_newshub_mock') === '1'
 }
@@ -185,6 +233,7 @@ export async function mockRequest<T>(method: string, url: string, data?: unknown
   if (url === '/ai-digest/runs' && method === 'POST') return mockAIDigestRun(data as AIDigestRunPayload) as T
   if (url === '/daily-digest/runs' && method === 'POST') return mockDailyDigestRun(data as RagDailyDigestRunPayload) as T
   if (url === '/knowledge/documents' && method === 'GET') return pageResult(filterKnowledgeDocuments(params), params) as T
+  if (url === '/rag-chat/sessions' && method === 'GET') return getMockRagChatSessions() as T
   if (url === '/rag-chat/ask' && method === 'POST') return mockRagChatAnswer(data as RagChatPayload) as T
 
   const newsDetailMatch = url.match(/^\/news\/(\d+)$/)
@@ -214,6 +263,13 @@ export async function mockRequest<T>(method: string, url: string, data?: unknown
 
   const knowledgeDetailMatch = url.match(/^\/knowledge\/documents\/(\d+)$/)
   if (knowledgeDetailMatch && method === 'GET') return findKnowledgeDocument(Number(knowledgeDetailMatch[1])) as T
+
+  const ragSessionMatch = url.match(/^\/rag-chat\/sessions\/(\d+)$/)
+  if (ragSessionMatch && method === 'GET') return getMockRagChatSessionDetail(Number(ragSessionMatch[1])) as T
+  if (ragSessionMatch && method === 'DELETE') {
+    deleteMockRagChatSession(Number(ragSessionMatch[1]))
+    return null as T
+  }
 
   throw new Error(`演示模式暂未覆盖接口：${method} ${url}`)
 }
@@ -342,26 +398,104 @@ function findKnowledgeDocument(id: number) {
   return item
 }
 
-function mockRagChatAnswer(payload: RagChatPayload): RagChatResult {
-  const firstDocument = knowledgeDocuments[0]
+function getMockRagChatSessions() {
+  return [...ragChatSessions].sort((left, right) => right.updated_at.localeCompare(left.updated_at))
+}
+
+function getMockRagChatSessionDetail(sessionId: number): RagChatSessionDetail {
+  const session = ragChatSessions.find((item) => item.id === sessionId)
+  if (!session) throw new Error('演示聊天会话不存在')
+
+  const messages = ragChatMessages
+    .filter((message) => message.session_id === sessionId)
+    .map((message) => {
+      const { session_id: _sessionId, ...publicMessage } = message
+      return publicMessage
+    })
 
   return {
-    answer: `演示回答：你问的是“${payload.question}”。真实后端会先按日期范围检索 RAG chunk，再把命中的资料交给大模型回答。`,
-    citations: [
-      {
-        document_id: firstDocument.id,
-        title: firstDocument.title,
-        source_name: firstDocument.source_name,
-        source_url: firstDocument.source_url,
-        digest_date: firstDocument.digest_date,
-      },
-    ],
-    matched_chunks: firstDocument.chunks.map((chunk) => ({
-      chunk_id: chunk.id,
+    ...session,
+    messages,
+  }
+}
+
+function deleteMockRagChatSession(sessionId: number) {
+  const exists = ragChatSessions.some((item) => item.id === sessionId)
+  if (!exists) throw new Error('演示聊天会话不存在')
+
+  ragChatSessions = ragChatSessions.filter((item) => item.id !== sessionId)
+}
+
+function buildMockSessionTitle(question: string) {
+  const title = question.replace(/\s+/g, ' ').trim()
+  return title.length > 28 ? `${title.slice(0, 28)}...` : title || '新的 AI 问答'
+}
+
+function getOrCreateMockRagSession(payload: RagChatPayload) {
+  const sessionId = payload.session_id || undefined
+  const oldSession = sessionId ? ragChatSessions.find((item) => item.id === sessionId) : undefined
+  if (oldSession) return oldSession
+
+  const now = new Date().toISOString()
+  const session: RagChatSession = {
+    id: Date.now(),
+    title: buildMockSessionTitle(payload.question),
+    created_at: now,
+    updated_at: now,
+  }
+  ragChatSessions.unshift(session)
+  return session
+}
+
+function mockRagChatAnswer(payload: RagChatPayload): RagChatResult {
+  const firstDocument = knowledgeDocuments[0]
+  const session = getOrCreateMockRagSession(payload)
+  const now = new Date().toISOString()
+  const citations = [
+    {
       document_id: firstDocument.id,
-      chunk_text: chunk.chunk_text,
-      score: 0.82,
-    })),
+      title: firstDocument.title,
+      source_name: firstDocument.source_name,
+      source_url: firstDocument.source_url,
+      digest_date: firstDocument.digest_date,
+    },
+  ]
+  const matchedChunks = firstDocument.chunks.map((chunk) => ({
+    chunk_id: chunk.id,
+    document_id: firstDocument.id,
+    chunk_text: chunk.chunk_text,
+    score: 0.82,
+  }))
+  const answer = `演示回答：你问的是“${payload.question}”。真实后端会先按日期范围检索 RAG chunk，再把命中的资料交给大模型回答。`
+
+  ragChatMessages.push(
+    {
+      id: Date.now(),
+      session_id: session.id,
+      role: 'user',
+      content: payload.question,
+      created_at: now,
+    },
+    {
+      id: Date.now() + 1,
+      session_id: session.id,
+      role: 'assistant',
+      content: answer,
+      metadata: {
+        citations,
+        matched_chunks: matchedChunks,
+      },
+      created_at: now,
+    },
+  )
+  session.updated_at = now
+
+  return {
+    session_id: session.id,
+    session_title: session.title,
+    answer,
+    citations,
+    matched_chunks: matchedChunks,
   }
 }
 

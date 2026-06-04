@@ -1,6 +1,6 @@
 <template>
   <el-container class="app-layout">
-    <el-aside class="sidebar" width="248px">
+    <el-aside class="sidebar" width="280px">
       <AppLogo />
       <el-menu :default-active="route.path" router class="nav-menu">
         <el-menu-item index="/daily">
@@ -106,6 +106,13 @@ function handleLogout() {
     color var(--nh-transition),
     box-shadow var(--nh-transition),
     transform var(--nh-transition);
+}
+
+.nav-menu :deep(.el-menu-item span) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .nav-menu :deep(.el-menu-item:hover) {

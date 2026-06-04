@@ -15,6 +15,12 @@
   display: inline-flex;
   align-items: center;
   gap: 12px;
+  width: 100%;
+  min-width: 0;
+}
+
+.app-logo > div:last-child {
+  flex: 1;
   min-width: 0;
 }
 

@@ -19,7 +19,11 @@ from models.daily_digest_runs import DailyDigestRun
 from models.knowledge_documents import KnowledgeDocument
 from models.rag_chunks import RagChunk
 from schemas.daily_digest import DailyDigestRunRequest
-from utils.llm_client import call_openai_compatible_chat
+from utils.llm_client import (
+    ChatCompletionResponse,
+    call_openai_compatible_chat,
+    call_openai_compatible_embeddings,
+)
 
 
 class RssSource(TypedDict):
@@ -39,6 +43,12 @@ class NewsCandidate(TypedDict):
 
 
 class LLMRuntimeConfig(TypedDict):
+    api_base_url: str
+    api_key: str
+    model: str
+
+
+class EmbeddingRuntimeConfig(TypedDict):
     api_base_url: str
     api_key: str
     model: str
@@ -408,6 +418,45 @@ def get_llm_runtime_config(run_data: DailyDigestRunRequest) -> LLMRuntimeConfig 
     }
 
 
+# 获取 embedding 模型配置：默认复用 OpenAI-compatible 地址和 key。
+def get_embedding_runtime_config() -> EmbeddingRuntimeConfig | None:
+    api_base_url = (
+        os.getenv("OPENAI_EMBEDDING_API_BASE_URL")
+        or os.getenv("OPENAI_API_BASE_URL")
+        or "https://api.openai.com/v1"
+    )
+    api_key = os.getenv("OPENAI_EMBEDDING_API_KEY") or os.getenv("OPENAI_API_KEY")
+    model = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
+
+    if not api_base_url or not api_key:
+        return None
+
+    return {
+        "api_base_url": api_base_url,
+        "api_key": api_key,
+        "model": model,
+    }
+
+
+# 为多个 chunk 生成 embedding；失败时返回空列表，让入库流程继续走关键词兜底。
+async def create_chunk_embeddings(texts: list[str]) -> tuple[list[list[float]], str | None]:
+    embedding_config = get_embedding_runtime_config()
+    if not embedding_config or not texts:
+        return [], None
+
+    try:
+        embeddings = await call_openai_compatible_embeddings(
+            api_base_url=embedding_config["api_base_url"],
+            api_key=embedding_config["api_key"],
+            model=embedding_config["model"],
+            texts=texts,
+        )
+    except Exception as err:
+        return [], f"embedding 生成失败，已保留关键词检索兜底：{err}"
+
+    return embeddings, None
+
+
 # 构造采集总结 prompt：让模型把英文原文整理成中文摘要、要点、关键词和选题角度。
 def build_digest_summary_messages(item: NewsCandidate) -> list[dict]:
     content = item["content"][:8000]
@@ -458,14 +507,12 @@ def parse_llm_json(text: str) -> dict | None:
 
 
 # 从大模型原始响应中取出文本内容。
-def get_llm_message_content(response_json: dict) -> str:
-    choices = response_json.get("choices") or []
+def get_llm_message_content(response_json: ChatCompletionResponse) -> str:
+    choices = response_json["choices"]
     if not choices:
         return ""
 
-    first_choice = choices[0]
-    message = first_choice.get("message") or {}
-    return message.get("content") or ""
+    return choices[0]["message"]["content"]
 
 
 # 把模型返回的列表字段整理成字符串列表，避免模型偶尔返回字符串时循环出错。
@@ -671,6 +718,36 @@ def split_text_to_chunks(text: str, chunk_size: int = 220) -> list[str]:
     return chunks
 
 
+# 把 chunk 写入数据库；如果 embedding 配置可用，会同步写入向量。
+async def add_rag_chunks(
+    db: AsyncSession,
+    document_id: int,
+    digest_date: date,
+    source_url: str | None,
+    chunk_texts: list[str],
+) -> tuple[int, str | None]:
+    embeddings, embedding_failed_message = await create_chunk_embeddings(chunk_texts)
+    embedding_config = get_embedding_runtime_config()
+    embedding_model = embedding_config["model"] if embedding_config else None
+
+    chunk_count = 0
+    for chunk_index, chunk_text in enumerate(chunk_texts):
+        embedding = embeddings[chunk_index] if chunk_index < len(embeddings) else None
+        chunk = RagChunk(
+            document_id=document_id,
+            chunk_index=chunk_index,
+            chunk_text=chunk_text,
+            digest_date=digest_date,
+            source_url=source_url,
+            embedding=embedding,
+            embedding_model=embedding_model if embedding else None,
+        )
+        db.add(chunk)
+        chunk_count += 1
+
+    return chunk_count, embedding_failed_message
+
+
 # 查询当前资讯是否已经入库：重复采集同一条 RSS 时，避免知识库出现重复数据。
 async def get_existing_document(
     item: NewsCandidate,
@@ -737,18 +814,14 @@ async def rebuild_document_chunks(
 ) -> int:
     await db.execute(delete(RagChunk).where(RagChunk.document_id == document.id))
 
-    chunk_count = 0
-    for chunk_index, chunk_text in enumerate(split_text_to_chunks(document.content or "")):
-        chunk = RagChunk(
-            document_id=document.id,
-            chunk_index=chunk_index,
-            chunk_text=chunk_text,
-            digest_date=document.digest_date,
-            source_url=document.source_url,
-        )
-        db.add(chunk)
-        chunk_count += 1
-
+    chunk_texts = split_text_to_chunks(document.content or "")
+    chunk_count, _ = await add_rag_chunks(
+        db=db,
+        document_id=document.id,
+        digest_date=document.digest_date,
+        source_url=document.source_url,
+        chunk_texts=chunk_texts,
+    )
     return chunk_count
 
 
@@ -886,18 +959,14 @@ async def save_candidate_to_knowledge_base(
     # flush 会把 document 先送到数据库，拿到自增 id，但不会真正提交事务。
     await db.flush()
 
-    chunk_count = 0
     chunks = split_text_to_chunks(item["content"])
-    for chunk_index, chunk_text in enumerate(chunks):
-        chunk = RagChunk(
-            document_id=document.id,
-            chunk_index=chunk_index,
-            chunk_text=chunk_text,
-            digest_date=digest_date,
-            source_url=item["source_url"],
-        )
-        db.add(chunk)
-        chunk_count += 1
+    chunk_count, _ = await add_rag_chunks(
+        db=db,
+        document_id=document.id,
+        digest_date=digest_date,
+        source_url=item["source_url"],
+        chunk_texts=chunks,
+    )
 
     return True, chunk_count
 
